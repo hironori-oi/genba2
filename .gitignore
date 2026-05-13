@@ -1,0 +1,60 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# next.js
+.next/
+out/
+build/
+dist/
+
+# misc
+.DS_Store
+*.pem
+.idea/
+.vscode/
+
+# testing
+coverage/
+playwright-report/
+test-results/
+playwright/.cache/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# secrets (managed via SOPS+age, see config/tech-stack.yaml)
+.env
+.env.local
+.env.enc
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+.env.*.local
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# vercel
+.vercel/
+.vercel
+
+# OS junk
+Thumbs.db
+
+# WSL-on-Windows accidental absolute-path artifacts (lighthouse/etc.)
+C:\\Users*
+
+# kobo local dispatch artifacts
+.kobo/
+
+# supabase CLI temp
+supabase/.temp/

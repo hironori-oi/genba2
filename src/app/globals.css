@@ -1,0 +1,253 @@
+@import "tailwindcss";
+
+/* Phase 1 design tokens — see docs/DESIGN_DIRECTION.md §3.
+   Dark mode is Phase 1 = OS-following only (`prefers-color-scheme: dark`).
+   Manual toggle/personal override is deferred to Phase 5. */
+
+@theme {
+  --color-bg: oklch(97.5% 0.005 150);
+  --color-surface: oklch(99% 0 0);
+  --color-surface-2: oklch(96% 0.008 160);
+  --color-ink: #18221f;
+  --color-muted: #5b6864;
+  --color-border: #dfe5e2;
+
+  --color-brand: oklch(48% 0.1 175);
+  --color-brand-foreground: #ffffff;
+
+  --color-func-receive: #087466;
+  --color-func-pick: #d26035;
+  --color-func-inventory: #2f5da8;
+  --color-func-manufact: #6c4aa6;
+
+  --color-ok: #0f6e44;
+  --color-warn: #8a5a0e;
+  --color-bad: #c63a2c;
+
+  --color-sidebar: #172421;
+  --color-sidebar-foreground: #e7ece8;
+  --color-sidebar-muted: oklch(72% 0.01 160);
+
+  --radius-sharp: 0px;
+  --radius-md: 6px;
+  --radius-pill: 999px;
+
+  --font-sans: "Inter", "Noto Sans JP", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+:root {
+  color-scheme: light dark;
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --surface-2: var(--color-surface-2);
+  --ink: var(--color-ink);
+  --muted: var(--color-muted);
+  --border: var(--color-border);
+  --sidebar: var(--color-sidebar);
+  --sidebar-foreground: var(--color-sidebar-foreground);
+  --sidebar-muted: var(--color-sidebar-muted);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: oklch(15% 0.01 160);
+    --surface: oklch(18% 0.012 160);
+    --surface-2: oklch(22% 0.012 160);
+    --ink: #e7ece8;
+    --muted: #9aa8a3;
+    --border: oklch(28% 0.01 160);
+    --sidebar: oklch(12% 0.01 160);
+    --sidebar-foreground: #e7ece8;
+    --sidebar-muted: oklch(70% 0.01 160);
+  }
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" off;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100dvh;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+input,
+select,
+textarea {
+  font-size: 18px;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Honor reduced-motion globally. Motion is opt-in; no entrance animations by default. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ============================================================
+   Phase 3b additions — Scanner / 2-point match / Step header.
+   APPEND ONLY. See workspace/design-library/tokens/genba-2026-05-12-polish.md.
+   Existing tokens (--color-ok / --color-warn / --color-bad) are retained;
+   the values below introduce semantic siblings used by the scanner overlay
+   so that color-blind-safe (icon + text + pattern + color) layering is
+   expressible at the token layer.
+   ============================================================ */
+
+@theme {
+  /* --color-good is a semantic alias intended specifically for the scanner
+     "matched OK" full-frame state. Same hue family as --color-ok (#0f6e44)
+     but lifted to oklch(58% .14 152) so the OK flash reads as confident
+     green on dark camera preview while still keeping 4.5:1+ on white text.
+     --color-ok remains the canonical OK ink color for body copy. */
+  --color-good: oklch(58% 0.14 152);
+  --color-good-foreground: #ffffff;
+
+  /* Scanner viewport subtle outline (idle / scanning). Low-chroma neutral
+     so it never competes with the OK/NG state flash on top. */
+  --color-scan-frame: oklch(70% 0.01 160);
+  --color-scan-frame-strong: oklch(48% 0.02 160);
+
+  /* Step-header progress dots — Header → Line → Label (P-OPE 2-point match).
+     Active uses brand teal so the focused step is unmistakable; done uses
+     ok ink so the trail reads as "confirmed"; pending uses muted neutral.
+     None of these three are load-bearing by color alone — the step row
+     also carries an index (01/02/03), a kana badge, and a checkmark glyph
+     on done.  See pattern doc for the redundancy contract. */
+  --color-step-active: oklch(48% 0.1 175);
+  --color-step-done: oklch(45% 0.11 152);
+  --color-step-pending: oklch(78% 0.005 160);
+
+  /* Motion budget tokens — see DESIGN_DIRECTION §7.
+     --motion-snap: press / tap acknowledgement (≤ 200ms ease).
+     --motion-pulse: viewfinder breathing hint, gated by prefers-reduced-motion. */
+  --motion-snap: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-pulse: 1500ms cubic-bezier(0.4, 0, 0.6, 1);
+
+  /* Large soft shadow for the ResultOverlay panel (bottom-sheet style result
+     card surfacing over the camera preview). Avoid generic-AI "ambient
+     glow" — this is a single directional drop + 1px hairline. */
+  --shadow-overlay:
+    0 -1px 0 rgba(24, 34, 31, 0.06),
+    0 -12px 32px -8px rgba(24, 34, 31, 0.28);
+}
+
+/* Keyframes for the viewfinder breathing hint. Disabled automatically by
+   the global reduced-motion rule above (transition-duration / animation-
+   duration are clamped, so the keyframe stops animating). */
+@keyframes genba-scan-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.015);
+  }
+}
+
+.genba-scan-pulse {
+  animation: genba-scan-pulse var(--motion-pulse) ease-in-out infinite;
+}
+
+.genba-tap-snap {
+  transition: transform var(--motion-snap);
+}
+.genba-tap-snap:active {
+  transform: scale(0.97);
+}
+
+/* ============================================================
+   Polish-phase delight (Phase 3b §F-3).
+   SVG check-stroke draw — fires once when ResultOverlay enters
+   variant="ok". 350ms cubic-bezier(0.2,0.6,0.2,1) per
+   inspirations/genba-logi-mvp.md §"Polish-phase delight 候補".
+   Honors prefers-reduced-motion (global rule above clamps
+   animation-duration; explicit override below makes the
+   end-state visible immediately even when clamped).
+   ============================================================ */
+@keyframes genba-check-draw {
+  from {
+    stroke-dashoffset: var(--genba-check-length, 48);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.genba-check-draw path {
+  stroke-dasharray: var(--genba-check-length, 48);
+  stroke-dashoffset: var(--genba-check-length, 48);
+  animation: genba-check-draw 350ms cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .genba-check-draw path {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+}
+
+/* Viewfinder corner-L bracket helper.  Four absolutely-positioned
+   blocks form a thin 28px L on each corner of the camera viewport.
+   Stroke width 3px / arm length 28px per scanner-overlay.md §Anatomy.
+   Color is set per-state by the host (idle / hover / scanning). */
+.genba-viewfinder-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: currentColor;
+  border-style: solid;
+  border-width: 0;
+}
+.genba-viewfinder-corner[data-corner="tl"] {
+  top: 0;
+  left: 0;
+  border-top-width: 3px;
+  border-left-width: 3px;
+}
+.genba-viewfinder-corner[data-corner="tr"] {
+  top: 0;
+  right: 0;
+  border-top-width: 3px;
+  border-right-width: 3px;
+}
+.genba-viewfinder-corner[data-corner="bl"] {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+}
+.genba-viewfinder-corner[data-corner="br"] {
+  bottom: 0;
+  right: 0;
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+}
