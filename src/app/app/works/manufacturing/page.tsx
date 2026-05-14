@@ -39,11 +39,21 @@ type DefectRow = {
  * server client (createClient) so bundle leakage scope (R-P4-10) stays
  * unchanged.
  */
-export default async function ManufacturingPage() {
+type SearchParams = { mode?: string | string[] };
+
+export default async function ManufacturingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<SearchParams>;
+}) {
   const session = await getAppSession();
   if (session.kind === "unauthenticated") {
     redirect("/login?next=/app/works/manufacturing");
   }
+
+  const sp = (await searchParams) ?? {};
+  const modeParam = Array.isArray(sp.mode) ? sp.mode[0] : sp.mode;
+  const startMode: "scan" | "form" = modeParam === "scan" ? "scan" : "form";
 
   let processOptions: ProcessOption[] = [];
   let defectOptions: { id: string; label: string }[] = [];
@@ -87,7 +97,11 @@ export default async function ManufacturingPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4" data-testid="manufacturing-root">
+    <div
+      className="flex flex-col gap-4"
+      data-testid="manufacturing-root"
+      data-start-mode={startMode}
+    >
       <ManufacturingFlow
         processOptions={processOptions}
         defectOptions={defectOptions}

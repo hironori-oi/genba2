@@ -187,13 +187,67 @@ EF live envelope (`manufacturing-plan-csv-import.live.test.ts`): **0 PASS / 6 fa
 | R-P4-11 多階層 access YAGNI | **ENFORCED** — no factory/line scoping landed; tenant_id remains the sole horizontal boundary. |
 | R-P4-12 a11y regression in DefectListInput | **CLOSED** by Phase 4c axe pass (no regression vs Phase 3b). |
 | R-P4-13 4業務統合履歴の情報過多 | **DEFERRED** — Phase 4c shipped business_code filter; UX polish continues in Phase 7. |
-| R-P4-14 PITR / production_deploy 承認 遅延 | **OPEN (owner)** — Phase 4d-prep does not deploy. PITR + production_deploy authorisation is the Phase 4d-deploy entry condition. |
+| R-P4-14 PITR / production_deploy 承認 遅延 | **DECIDED 2026-05-14** — production_deploy はオーナー手動で完了 (<https://genba2-ai.vercel.app/>)。PITR は本フェーズで採用見送り (Supabase Free + 日次バックアップで運用開始、RPO 24h を受容)。詳細: 本 audit "Backup / Disaster Recovery (Phase 4d-deploy 反映)" セクション + RUNBOOK §6。再評価は Phase 9 (または顧客数 / トランザクション量増 / 観測強化トリガ) で実施。 |
 | R-P4-15 N=50 不適合 UI 劣化 | **DEFERRED** — virtualised list explicitly out of scope per architect doc; N≤20 assumption holds. |
 | R-P4-16 submit_manufacturing_record RPC SECURITY INVOKER | **DEVIATED** — see P2-A. Mitigated in-line. |
 | R-P4-17 訂正と製造入庫の整合 | **DEFERRED** — Phase 4 訂正 UI is read-only; write 訂正 is Phase 5. |
 | R-P4-18 qr_scan_histories index degradation | **NO REGRESSION** — `qr_scan_histories_tenant_business_created_idx` covers `business_code='manufacturing'`. |
 | R-P4-19 demo seed 本番混在 | **DEFERRED** — to be enforced via dedicated `tenants.slug='demo-mfg'` isolation at Phase 4d-deploy. |
 | R-P4-20 命名差 (mfg_processes vs manufacturing_plan_processes) | **DOCUMENTED** in migration header + ADR-P4-01. |
+
+---
+
+## Backup / Disaster Recovery (Phase 4d-deploy 反映, 2026-05-14)
+
+### Decision record: PITR は本フェーズで採用しない
+
+- **オーナー判断 (2026-05-14 Slack)**: 「Vercel deploy + env vars 完了、PITR 使用しない方針」。
+- **背景**: Phase 4 architect doc R-P4-14 / IMPLEMENTATION_PLAN.md は Phase 3 末で `paid_subscription_signup` 承認 → Phase 4 着手前 PITR 有効化を計画していたが、本番デプロイ直前にオーナーが PITR 採用を **見送り**、Supabase Free tier の標準日次バックアップで本番投入することを決定した。
+- **影響を受ける箇所**: 本 audit の R-P4-14 行 (リスク登録) と RUNBOOK §3.3 / §6 のみ。production code / migration / RLS surface には影響なし (PITR は DB 側の物理ログ機能で、アプリ層に依存しない)。
+
+### Risk
+
+| 項目 | 値 |
+|---|---|
+| 想定 worst case | snapshot 取得直前の本番 DB が破壊された場合、最大 **24 時間分**の入力データが失われる (RPO 24h) |
+| 影響範囲 | `manufacturing_records` / `manufacturing_record_defects` / `qr_scan_histories` / `movement_records` への worker 入力 |
+| 影響を受けないデータ | 認証情報 (Supabase Auth 側、別管理) / 暗号化済 secrets (`.env.enc`) / コード (Git) / 設計 doc (Git) |
+| 含まれない PII | 氏名・住所・電話・決済情報は genba スキーマに存在せず (`profiles` は `login_id`=email のみ) |
+| 受容判定 | **1 顧客 MVP 段階としてオーナー受容済 (2026-05-14)**。複数顧客時 / トランザクション増 / 観測強化と合わせて再評価 |
+
+### Mitigation
+
+1. **日次バックアップの稼働確認**: Supabase Dashboard → Project → Database → Backups で日次 snapshot が取得できていることをオーナーが定期目視 (推奨: 月 1 回)。Supabase Free tier では取得時刻 / 保持期間は Supabase 側仕様に従う。
+2. **リストア手順の集約**: `docs/RUNBOOK.md` §3.3 (Database rollback) に手順を明記済。リストア所要時間 (RTO) は初回演習時に実測して RUNBOOK §6.2 に追記する運用とする。
+3. **書込側の多層防御 (PITR 不在を補完)**:
+   - **forward-only migration** (RUNBOOK §3.4) — 構造変更は後方互換的に積み上げ、破壊的 schema 変更を避ける。
+   - **soft-delete (`deleted_at = now()`)** — 行レベルの誤入力訂正は snapshot リストアより低コスト。RLS 上 worker は触れず、tenant_admin / system_admin のみ実行可能。
+   - **submit_manufacturing_record RPC 単一トランザクション** (Phase 4a) — 部分書込みによる中間状態破壊を防止。
+   - **partial unique index** `movement_records_manufacturing_unique_alive` (Phase 4a) — 製造入庫の二重記録による在庫数 inflate を物理的に防止。
+4. **観測**: 本フェーズでは Sentry / Datadog 未契約。**5xx ゼロの確認は Vercel Builtin metrics と本 dispatch の prod-smoke スクリプト** (`.kobo/prod-smoke-T-<TASK_ID>.mjs` + GET status code check) で行う。本 dispatch (T-20260514-110000) の smoke で `5xx=0` を確認済。
+5. **外部 PII / 決済データ非保持**: PCI / GDPR レベルの強制 RPO 要件は **適用外** (該当データを保持していない)。今後 GEN 連携 (Phase 10) で PII が増える場合は PITR 採用を必須化する想定。
+
+### 再評価トリガ (Phase 9 ないし前倒し)
+
+`docs/RUNBOOK.md` §6.3 と整合。要点:
+
+- 顧客数 ≥ 3 / Beta 卒業 (Phase 7) 直前 / Phase 9 性能+バックアップ+観測 のいずれかで PITR 切替判断を再実施。
+- Sentry / Datadog 等の有料 observability 導入承認 (`paid_subscription_signup` 再承認) と同時に検討するのが効率的。
+
+### R-P4-14 ステータス更新
+
+本 audit §"Phase 4 risk-register reconciliation" の R-P4-14 行は:
+
+- **更新前**: "OPEN (owner) — Phase 4d-prep does not deploy. PITR + production_deploy authorisation is the Phase 4d-deploy entry condition."
+- **更新後 (2026-05-14)**: **DECIDED — production_deploy はオーナー手動で完了 (https://genba2-ai.vercel.app/)、PITR は本フェーズで採用見送り。日次バックアップで運用開始、再評価トリガは RUNBOOK §6.3 に明記。**
+
+### Verdict 影響なし
+
+本 Backup / DR セクションの追加は **VERDICT を "conditional pass" から変えない**:
+
+- P0 / P1 への影響なし (PITR は DB 物理ログ機能であり、コード surface の脆弱性に該当しない)。
+- P2-A (SECURITY DEFINER deviation) / P2-B (EF undeployed live envelope) のステータスも本 dispatch では変えない (P2-B は EF 未デプロイ状態 — 別 dispatch で対応)。
+- 新規 finding なし。
 
 ---
 
@@ -253,3 +307,4 @@ The "conditional" qualifier applies only to the empirical EF envelope evidence. 
 | date | revision | author |
 |---|---|---|
 | 2026-05-13 | Phase 4 first double-audit pass — 6 manufacturing migrations + WORKS server actions + `manufacturing-plan-csv-import` EF + WORKS UI + Phase 4d-prep RLS-401..408 live exec. P0=0 P1=0 P2=3. EF live envelope blocked on owner-authorised deploy. VERDICT conditional pass. | security-auditor (dispatch T-20260513-240000-genba-phase4d-prep, Read-only) |
+| 2026-05-14 | Phase 4d-deploy 反映 — オーナー判断「PITR 採用見送り」を Backup / Disaster Recovery セクションとして追記、R-P4-14 を DECIDED に更新。production smoke test (`https://genba2-ai.vercel.app/`) で 4 endpoint / 5xx=0 / auth redirect 307 を確認。Verdict 影響なし (依然 conditional pass)。コード / migration / RLS surface には変更なし、docs only。 | orchestrator (dispatch T-20260514-110000-genba-phase4d-deploy-verify, Read-only smoke + docs) |

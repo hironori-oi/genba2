@@ -19,7 +19,12 @@ function shotPath(name: string): string {
  * (b) the spec file parses + reports its test-skip state so QA can see
  * structurally what shape was expected.
  */
-test.describe("Phase 3b 入庫 flow", () => {
+test.describe("Phase 3b 入庫 unauth contract", () => {
+  // Phase 6b carry-over hardening: ensure the redirect assertion runs with
+  // a clean storage state even when global-setup has installed a tenant_admin
+  // session for the other tests in this suite.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test("/app/logi/receiving redirects unauthenticated visitors back to /login", async ({
     page,
   }) => {
@@ -30,7 +35,9 @@ test.describe("Phase 3b 入庫 flow", () => {
       fullPage: true,
     });
   });
+});
 
+test.describe("Phase 3b 入庫 flow", () => {
   test("authed structure — StepHeader + Scanner + ngflow toggle render", async ({
     page,
   }) => {
@@ -49,6 +56,15 @@ test.describe("Phase 3b 入庫 flow", () => {
     const box = await abortBtn.boundingBox();
     expect(box?.width ?? 0).toBeGreaterThanOrEqual(56);
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(56);
+
+    // Dismiss the Scanner's manual-input fallback overlay if it auto-opened
+    // (headless Playwright has no getUserMedia / BarcodeDetector so the
+    // Scanner enters its D-03 manual-input modal on mount). Closing first
+    // unblocks the ngflow toggle below.
+    const modal = page.getByTestId("manual-input-modal");
+    if (await modal.isVisible().catch(() => false)) {
+      await page.getByTestId("manual-input-close").click();
+    }
 
     // ng_flow toggle is visible and switches the label.
     const toggle = page.getByTestId("ngflow-toggle");

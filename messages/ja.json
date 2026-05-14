@@ -1,0 +1,149 @@
+{
+  "common": {
+    "loading": "読み込み中…",
+    "save": "保存",
+    "saving": "保存中…",
+    "cancel": "キャンセル",
+    "back": "戻る",
+    "close": "閉じる",
+    "yes": "はい",
+    "no": "いいえ",
+    "online": "オンライン",
+    "offline": "オフライン",
+    "tenantNotSet": "tenant: 未設定",
+    "userMissing": "ユーザー未取得",
+    "skipToContent": "メインコンテンツへスキップ",
+    "previewMode": "プレビューモード",
+    "previewModeDescription": "Supabase 接続情報が未設定のため、ダミーデータでプレビュー表示しています。実値を `.env.enc` に登録後、ライブ DB の値が表示されます。"
+  },
+  "appShell": {
+    "productTagline": "現場作業記録 SaaS",
+    "navAriaGlobal": "グローバルナビゲーション",
+    "navAriaBusiness": "業務",
+    "navSectionBusiness": "業務",
+    "logout": "ログアウト",
+    "phaseChip": "v0.1 / Phase 1",
+    "pendingChipP6": "P6",
+    "pendingChipFuture": "P3+",
+    "phasePending": "Phase 2 以降で実装",
+    "tenantPrefix": "tenant",
+    "usageBannerWarnTitle": "月間スキャン上限の 80% に達しました",
+    "usageBannerWarnBody": "当月 {used} 件 / 上限 {cap} 件 ({percent}%)。テナントプランの見直しを検討してください。",
+    "usageBannerExceededTitle": "月間スキャン上限を超過しました",
+    "usageBannerExceededBody": "当月 {used} 件 / 上限 {cap} 件。新規スキャンが拒否される場合があります。",
+    "usageBannerOpenAction": "利用状況を確認"
+  },
+  "nav": {
+    "receiving": "入庫",
+    "picking": "ピッキング",
+    "inventory": "棚卸",
+    "manufacturing": "製造",
+    "fields": "項目設定",
+    "qr": "QR 設定",
+    "qrTest": "QR 読取テスト",
+    "matchRules": "照合ルール",
+    "csvFormats": "CSV 設定",
+    "workSettings": "業務設定",
+    "masters": "製造系マスタ",
+    "correctionsPending": "未承認訂正",
+    "reports": "報告書",
+    "auditLogs": "監査ログ",
+    "tenants": "テナント管理",
+    "notifications": "通知設定",
+    "users": "ユーザー管理",
+    "usage": "利用状況"
+  },
+  "roles": {
+    "worker": "作業者",
+    "tenant_admin": "テナント管理者",
+    "system_admin": "システム管理者"
+  },
+  "dashboard": {
+    "eyebrow": "ダッシュボード",
+    "greeting": "{name}さん、こんにちは。",
+    "greetingFallback": "ようこそ",
+    "intro": "業務を選んで作業を開始します。Phase 1 では認証と基盤のみ実装、業務画面は Phase 3 以降で順次開放されます。",
+    "businessListSr": "利用可能な業務",
+    "comingSoon": "まもなく",
+    "sessionHeading": "セッション情報",
+    "roleLabel": "ロール",
+    "tenantLabel": "テナント ID",
+    "tenantUnassigned": "未割当 (オーナーが initial admin として割当)",
+    "businesses": {
+      "receivingNote": "ラベル QR を読取して入庫を記録",
+      "pickingNote": "ヘッダ → 明細 → ラベルの 2 点照合",
+      "inventoryNote": "CSV 取込 → ロケ → ラベル → 実数量",
+      "manufacturingNote": "Phase 4 で実装"
+    },
+    "noticePasswordReset": "パスワード再設定",
+    "noticePasswordResetBody": "パスワードのリセットが確認されました。設定タブからパスワードを更新してください (Phase 5 で UI 提供予定)。"
+  },
+  "admin": {
+    "eyebrow": "運用設定",
+    "heading": "項目・QR・照合ルール",
+    "intro": "標準項目の利用 ON/OFF と用途、QR バージョン、照合ルールを編集します。Phase 2 では編集 UI と読取テストを提供し、Phase 3 以降の業務画面はここでの設定をそのまま使用します。",
+    "tabsAria": "管理タブ",
+    "phase6Pending": "P6",
+    "phase6InProgress": "Phase 6 進行中",
+    "indexAria": "管理メニュー一覧",
+    "noticeSystemAdminOnlyTitle": "アクセス権限がありません",
+    "noticeSystemAdminOnlyBody": "選択した画面は system_admin 専用です。tenant_admin では参照できません。"
+  },
+  "logi": {
+    "eyebrow": "LOGI",
+    "heading": "物流業務",
+    "intro": "入庫 / ピッキング / 棚卸 の 3 業務を 1 端末で扱います。各業務は QR を中心に進み、必要に応じて手入力フォールバックに切替えできます。製造業務は WORKS エリア (/app/works/manufacturing) で同じ操作感で扱えます。",
+    "businessesSr": "利用可能な物流業務",
+    "primaryStart": "ヘッダから順に開始",
+    "scanStart": "スキャンで開始",
+    "scanStartAria": "{label}をスキャンで開始",
+    "relatedHeading": "関連メニュー",
+    "linkHistory": "履歴を見る",
+    "businesses": {
+      "receivingDescription": "現品ラベル QR を自由読取して入庫を記録します (UC-2)。ロケーション補正・手入力フォールバックに対応。",
+      "pickingDescription": "ヘッダ → 明細 → 現品ラベルの 2 点照合 (UC-1)。NG 時は ng_flow の設定に従って block / warn。",
+      "inventoryDescription": "棚卸計画 CSV 取込 → ロケーション QR → ラベル QR → 実数量入力 (UC-3)。差異 CSV を出力できます。",
+      "manufacturingDescription": "製造実績の登録 (UC-4)。工程 → 実数量 → 不適合 → 任意の製造入庫を 1 トランザクションで登録します。"
+    }
+  },
+  "works": {
+    "eyebrow": "WORKS / 製造実績",
+    "heading": "製造実績登録"
+  },
+  "account": {
+    "eyebrow": "個人設定 / 表示・通知",
+    "heading": "表示と通知の設定",
+    "intro": "言語、テーマ、通知の受信レベルを切り替えます。テーマは既定で OS 追従です。",
+    "breadcrumbAria": "個人設定パンくず",
+    "backToIndex": "← 個人設定トップへ戻る",
+    "previewBanner": "Supabase 接続情報が未設定のため、更新は保存されません。"
+  },
+  "preferences": {
+    "languageLegend": "表示言語",
+    "themeLegend": "テーマ",
+    "notificationLegend": "通知",
+    "saveError": "保存できませんでした",
+    "saveSuccess": "保存完了",
+    "saveSuccessBody": "個人設定を更新しました。",
+    "languageOptions": {
+      "ja": "日本語",
+      "en": "English"
+    },
+    "themeOptions": {
+      "auto": "OS追従",
+      "autoHint": "端末の設定に合わせる (既定)",
+      "light": "ライト",
+      "lightHint": "常にライトテーマ",
+      "dark": "ダーク",
+      "darkHint": "常にダークテーマ"
+    },
+    "notificationOptions": {
+      "all": "すべて受信",
+      "allHint": "更新・連絡・お知らせ をすべて受信",
+      "important": "重要のみ",
+      "importantHint": "業務影響のあるお知らせのみ (既定)",
+      "none": "受信しない",
+      "noneHint": "通知を一切受け取りません"
+    }
+  }
+}

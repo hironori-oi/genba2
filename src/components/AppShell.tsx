@@ -1,88 +1,69 @@
 import Link from "next/link";
 import { type ReactNode } from "react";
+import { getTranslations } from "next-intl/server";
 import { cn } from "@/lib/cn";
 import type { AppRole } from "@/lib/auth/session";
+import { resolveUsageBannerSignal } from "@/lib/admin/usage/banner";
 
-type NavItem = {
+type NavItemDef = {
   href: string;
-  label: string;
+  labelKey: string;
   badge: string;
   accent: string;
   disabled?: boolean;
+  phase6Pending?: boolean;
 };
 
-const BUSINESS_NAV: NavItem[] = [
+const BUSINESS_NAV: NavItemDef[] = [
   {
     href: "/app/logi/receiving",
-    label: "入庫",
+    labelKey: "receiving",
     badge: "入",
     accent: "bg-[var(--color-func-receive)]",
   },
   {
     href: "/app/logi/picking",
-    label: "ピッキング",
+    labelKey: "picking",
     badge: "ピ",
     accent: "bg-[var(--color-func-pick)]",
   },
   {
     href: "/app/logi/inventory",
-    label: "棚卸",
+    labelKey: "inventory",
     badge: "棚",
     accent: "bg-[var(--color-func-inventory)]",
   },
   {
     href: "/app/work/manufacturing",
-    label: "製造",
+    labelKey: "manufacturing",
     badge: "製",
     accent: "bg-[var(--color-func-manufact)]",
     disabled: true,
   },
 ];
 
-const ADMIN_NAV: NavItem[] = [
-  {
-    href: "/app/admin/fields",
-    label: "項目設定",
-    badge: "項",
-    accent: "bg-[var(--surface-2)]",
-  },
-  {
-    href: "/app/admin/qr",
-    label: "QR 設定",
-    badge: "Q",
-    accent: "bg-[var(--surface-2)]",
-  },
-  {
-    href: "/app/admin/match-rules",
-    label: "照合ルール",
-    badge: "照",
-    accent: "bg-[var(--surface-2)]",
-  },
+const ADMIN_NAV: NavItemDef[] = [
+  { href: "/app/admin/fields", labelKey: "fields", badge: "項", accent: "bg-[var(--surface-2)]" },
+  { href: "/app/admin/qr", labelKey: "qr", badge: "Q", accent: "bg-[var(--surface-2)]" },
+  { href: "/app/admin/match-rules", labelKey: "matchRules", badge: "照", accent: "bg-[var(--surface-2)]" },
+  { href: "/app/admin/reports", labelKey: "reports", badge: "報", accent: "bg-[var(--surface-2)]" },
+  { href: "/app/admin/users", labelKey: "users", badge: "U", accent: "bg-[var(--surface-2)]" },
+  { href: "/app/admin/usage", labelKey: "usage", badge: "%", accent: "bg-[var(--surface-2)]" },
+  { href: "/app/admin/audit-logs", labelKey: "auditLogs", badge: "監", accent: "bg-[var(--surface-2)]" },
+  { href: "/app/admin/notifications", labelKey: "notifications", badge: "通", accent: "bg-[var(--surface-2)]" },
 ];
 
-const SYSTEM_NAV: NavItem[] = [
-  {
-    href: "/app/system-admin",
-    label: "テナント管理",
-    badge: "S",
-    accent: "bg-[var(--surface-2)]",
-    disabled: true,
-  },
+const SYSTEM_NAV: NavItemDef[] = [
+  { href: "/app/admin/tenants", labelKey: "tenants", badge: "テ", accent: "bg-[var(--surface-2)]" },
 ];
 
-function navFor(role: AppRole): NavItem[] {
+function navFor(role: AppRole): NavItemDef[] {
   if (role === "system_admin") return [...BUSINESS_NAV, ...ADMIN_NAV, ...SYSTEM_NAV];
   if (role === "tenant_admin") return [...BUSINESS_NAV, ...ADMIN_NAV];
   return BUSINESS_NAV;
 }
 
-const ROLE_LABEL: Record<AppRole, string> = {
-  worker: "作業者",
-  tenant_admin: "テナント管理者",
-  system_admin: "システム管理者",
-};
-
-export function AppShell({
+export async function AppShell({
   role,
   email,
   displayName,
@@ -98,40 +79,53 @@ export function AppShell({
   logoutAction?: () => Promise<void>;
 }) {
   const items = navFor(role);
+  const tShell = await getTranslations("appShell");
+  const tNav = await getTranslations("nav");
+  const tRoles = await getTranslations("roles");
+  const tCommon = await getTranslations("common");
+  const banner = await resolveUsageBannerSignal(role, tenantId);
 
   return (
     <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[240px_1fr]">
       <aside
         className="hidden flex-col bg-[var(--sidebar)] text-[var(--sidebar-foreground)] lg:flex"
-        aria-label="グローバルナビゲーション"
+        aria-label={tShell("navAriaGlobal")}
       >
         <div className="px-6 py-5">
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--sidebar-muted)]">
             GENBA
           </p>
           <p className="mt-1 font-mono text-sm text-[var(--sidebar-foreground)]">
-            v0.1 / Phase 1
+            {tShell("phaseChip")}
           </p>
         </div>
-        <nav className="flex-1 px-3" aria-label="業務">
+        <nav className="flex-1 px-3" aria-label={tShell("navAriaBusiness")}>
           <p className="px-3 pb-2 pt-4 text-[10px] uppercase tracking-wide text-[var(--sidebar-muted)]">
-            業務
+            {tShell("navSectionBusiness")}
           </p>
           <ul className="flex flex-col gap-1">
             {items.map((item) => (
               <li key={item.href}>
-                <NavLink {...item} />
+                <NavLink
+                  item={item}
+                  label={tNav(item.labelKey)}
+                  pendingChipFuture={tShell("pendingChipFuture")}
+                  pendingChipP6={tShell("pendingChipP6")}
+                  pendingTitle={tShell("phasePending")}
+                />
               </li>
             ))}
           </ul>
         </nav>
         <div className="border-t border-white/10 px-4 py-4 text-xs text-[var(--sidebar-muted)]">
           <p className="font-medium text-[var(--sidebar-foreground)]">
-            {displayName ?? email ?? "ユーザー未取得"}
+            {displayName ?? email ?? tCommon("userMissing")}
           </p>
-          <p>{ROLE_LABEL[role]}</p>
+          <p>{tRoles(role)}</p>
           <p className="mt-1 font-mono text-[10px] break-all">
-            {tenantId ? `tenant: ${tenantId.slice(0, 8)}…` : "tenant: 未設定"}
+            {tenantId
+              ? `${tShell("tenantPrefix")}: ${tenantId.slice(0, 8)}…`
+              : tCommon("tenantNotSet")}
           </p>
         </div>
       </aside>
@@ -148,25 +142,67 @@ export function AppShell({
             <div className="hidden flex-col leading-tight sm:flex">
               <span className="text-sm font-semibold text-[var(--ink)]">GENBA</span>
               <span className="text-xs text-[var(--muted)]">
-                現場作業記録 SaaS
+                {tShell("productTagline")}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <StatusChip tone="ok">オンライン</StatusChip>
-            <StatusChip tone="muted">{ROLE_LABEL[role]}</StatusChip>
+            <StatusChip tone="ok">{tCommon("online")}</StatusChip>
+            <StatusChip tone="muted">{tRoles(role)}</StatusChip>
             {logoutAction ? (
               <form action={logoutAction}>
                 <button
                   type="submit"
                   className="h-9 px-3 text-sm font-medium text-[var(--ink)] border border-[var(--border)] hover:border-[var(--color-bad)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand)]"
                 >
-                  ログアウト
+                  {tShell("logout")}
                 </button>
               </form>
             ) : null}
           </div>
         </header>
+
+        {banner ? (
+          <div
+            data-testid="app-shell-usage-banner"
+            data-warning={banner.warning}
+            role={banner.warning === "exceeded" ? "alert" : "status"}
+            aria-live={banner.warning === "exceeded" ? "assertive" : "polite"}
+            className={cn(
+              "flex flex-col gap-1 border-b px-4 py-2 text-sm lg:px-8",
+              banner.warning === "exceeded"
+                ? "border-[var(--color-bad)] bg-[oklch(94%_.04_25)]"
+                : "border-[var(--color-warn)] bg-[oklch(96%_.04_70)]",
+            )}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              {banner.warning === "exceeded"
+                ? tShell("usageBannerExceededTitle")
+                : tShell("usageBannerWarnTitle")}
+            </p>
+            <p className="flex flex-wrap items-center gap-3 text-[var(--ink)]">
+              <span>
+                {banner.warning === "exceeded"
+                  ? tShell("usageBannerExceededBody", {
+                      used: banner.used.toLocaleString(),
+                      cap: banner.cap.toLocaleString(),
+                    })
+                  : tShell("usageBannerWarnBody", {
+                      used: banner.used.toLocaleString(),
+                      cap: banner.cap.toLocaleString(),
+                      percent: banner.percent,
+                    })}
+              </span>
+              <Link
+                href="/app/admin/usage"
+                data-testid="app-shell-usage-banner-cta"
+                className="inline-flex h-9 items-center border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--ink)] hover:border-[var(--color-brand)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand)]"
+              >
+                {tShell("usageBannerOpenAction")}
+              </Link>
+            </p>
+          </div>
+        ) : null}
 
         <main
           id="main"
@@ -180,7 +216,20 @@ export function AppShell({
   );
 }
 
-function NavLink({ href, label, badge, accent, disabled }: NavItem) {
+function NavLink({
+  item,
+  label,
+  pendingChipFuture,
+  pendingChipP6,
+  pendingTitle,
+}: {
+  item: NavItemDef;
+  label: string;
+  pendingChipFuture: string;
+  pendingChipP6: string;
+  pendingTitle: string;
+}) {
+  const { href, badge, accent, disabled, phase6Pending } = item;
   const className = cn(
     "flex items-center gap-3 px-3 py-2 text-sm",
     "border-l-[3px] border-transparent",
@@ -188,6 +237,18 @@ function NavLink({ href, label, badge, accent, disabled }: NavItem) {
       ? "cursor-not-allowed text-[var(--sidebar-muted)]"
       : "text-[var(--sidebar-foreground)] hover:border-[var(--color-brand)] hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand)]",
   );
+  const trailing = disabled ? (
+    <span className="font-mono text-[10px] uppercase tracking-wide text-[var(--sidebar-muted)]">
+      {pendingChipFuture}
+    </span>
+  ) : phase6Pending ? (
+    <span
+      data-testid="phase6-pending-chip"
+      className="border border-[var(--color-warn)] px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-[var(--sidebar-foreground)]"
+    >
+      {pendingChipP6}
+    </span>
+  ) : null;
   const content = (
     <>
       <span
@@ -200,16 +261,12 @@ function NavLink({ href, label, badge, accent, disabled }: NavItem) {
         {badge}
       </span>
       <span className="flex-1">{label}</span>
-      {disabled ? (
-        <span className="font-mono text-[10px] uppercase tracking-wide text-[var(--sidebar-muted)]">
-          P{label === "テナント管理" ? "6+" : "3+"}
-        </span>
-      ) : null}
+      {trailing}
     </>
   );
   if (disabled) {
     return (
-      <span aria-disabled className={className} title="Phase 2 以降で実装">
+      <span aria-disabled className={className} title={pendingTitle}>
         {content}
       </span>
     );

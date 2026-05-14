@@ -12,6 +12,13 @@ function shotPath(name: string): string {
 }
 
 test.describe("Phase 1 auth screens + protected shell", () => {
+  // Phase 6b carry-over hardening: this spec asserts the *unauthenticated*
+  // contract for /, /login, /forgot-password, /app. The Phase 5e2 global
+  // setup pre-fills tenant_admin storageState which would otherwise auto-
+  // redirect /login → /app and skip the redirect check on /app. Force a
+  // clean storage state so the assertions hold.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test("landing page renders branded hero", async ({ page }) => {
     await page.goto("/");
     await expect(

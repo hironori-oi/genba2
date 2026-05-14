@@ -1,115 +1,193 @@
 "use server";
 
 import { z } from "zod";
-import { getAppSession } from "@/lib/auth/session";
-import { supabaseConfigured } from "@/lib/env";
-import { createClient } from "@/lib/supabase/server";
+import { ensureTenantAdmin } from "@/lib/admin/ensure-tenant-admin";
+import { err, isErr, ok, type AdminActionResult } from "@/lib/admin/shared/result";
+import {
+  matchRuleSchema,
+  uuidSchema,
+  zodIssuesToFieldErrors,
+} from "@/lib/admin/shared/validation";
 import type { MatchRule } from "@/lib/admin/fixtures";
 
-const LINE = z.object({
-  sortOrder: z.number().int().min(1).max(100),
-  lineFieldCode: z.string().min(1).max(64),
-  labelFieldCode: z.string().min(1).max(64),
-  compareType: z.enum(["equals", "numeric_equals"]),
-  missingValueAction: z.enum(["ng", "warning", "skip"]),
-  mismatchAction: z.enum(["ng", "warning"]),
-});
+/**
+ * Phase 5b match_rules CRUD server actions
+ * (architect §3.2.2 + §9 R-P5-04 / SCOPE_5B_STRICT bullet 2).
+ *
+ * Key change vs Phase 2: the rule_lines persistence path is now a *diff
+ * UPSERT + soft-delete* instead of "delete then insert". The earlier
+ * wipe-and-reinsert strategy was flagged by R-P5-04 as breaking parent /
+ * audit linkage and rewriting `created_at` for every line on every save.
+ *
+ * Algorithm:
+ *   1. SELECT existing alive lines for the rule.
+ *   2. Compute soft-delete set = { existing.sort_order } - { submitted.sort_order }.
+ *   3. UPSERT submitted lines onto (match_rule_id, sort_order).
+ *
+ * Side-effect: `updated_at` advances monotonically (Phase 2 trigger covers
+ * it), `created_at` is preserved for unchanged lines, and audit log
+ * references remain intact.
+ */
 
-const RULE = z.object({
-  id: z.string().min(1),
-  ruleCode: z
-    .string()
-    .min(1, "ルールコードは必須です。")
-    .max(64)
-    .regex(/^[A-Za-z0-9_-]+$/, "ルールコードは英数字 / - / _ のみ使用できます。"),
-  ruleName: z.string().min(1, "ルール名は必須です。").max(128),
-  businessCode: z.enum(["receiving", "picking", "inventory", "manufacturing"]),
-  enabled: z.boolean(),
-  lines: z.array(LINE).max(50),
-});
+const DELETE_INPUT = z.object({ id: z.string().min(1) });
 
-export type SaveMatchRuleResult = { status: "ok" } | { status: "error"; message: string };
+export type SaveMatchRuleResult = AdminActionResult<{ id: string }>;
 
 export async function saveMatchRuleAction(rule: MatchRule): Promise<SaveMatchRuleResult> {
-  const parsed = RULE.safeParse(rule);
+  const parsed = matchRuleSchema.safeParse(rule);
   if (!parsed.success) {
-    const first = parsed.error.issues[0]?.message ?? "入力データが不正です。";
-    return { status: "error", message: first };
+    return err(
+      "validation",
+      "入力内容を確認してください。",
+      zodIssuesToFieldErrors(parsed.error),
+    );
   }
   for (const line of parsed.data.lines) {
     if (!line.lineFieldCode || !line.labelFieldCode) {
-      return { status: "error", message: "全ての比較ラインで明細項目とラベル項目を選択してください。" };
+      return err(
+        "validation",
+        "全ての比較ラインで明細項目とラベル項目を選択してください。",
+      );
     }
   }
 
-  if (!supabaseConfigured()) {
-    return { status: "ok" };
-  }
+  const gate = await ensureTenantAdmin();
+  if (isErr(gate)) return gate;
+  const { tenantId, supabase } = gate.data;
 
-  const session = await getAppSession();
-  if (session.kind !== "ok") return { status: "error", message: "認証が必要です。" };
-  if (session.session.role === "worker") {
-    return { status: "error", message: "tenant_admin 以上の権限が必要です。" };
-  }
-  if (!session.session.tenantId) {
-    return { status: "error", message: "テナントが未割当のため保存できません。" };
-  }
-
-  const sb = await createClient();
   const isNew = parsed.data.id.startsWith("new-");
-  const payload = {
-    tenant_id: session.session.tenantId,
+  const headerPayload = {
+    tenant_id: tenantId,
     business_code: parsed.data.businessCode,
     rule_code: parsed.data.ruleCode,
     rule_name: parsed.data.ruleName,
     enabled: parsed.data.enabled,
   };
+
   let ruleId = parsed.data.id;
   if (isNew) {
-    const { data, error } = await sb
+    const { data, error } = await supabase
       .from("match_rules")
-      .insert(payload)
+      .insert(headerPayload)
       .select("id")
       .single();
-    if (error) return { status: "error", message: "ルール作成に失敗しました。" };
-    ruleId = data.id;
+    if (error) {
+      if (error.code === "23505") {
+        return err("conflict", "同じ業務 + ルールコードのルールが既に存在します。");
+      }
+      return err("unexpected", "ルール作成に失敗しました。");
+    }
+    ruleId = (data as { id: string }).id;
   } else {
-    const { error } = await sb.from("match_rules").update(payload).eq("id", ruleId);
-    if (error) return { status: "error", message: "ルール更新に失敗しました。" };
-    // Wipe and reinsert lines (simple approach for Phase 2 prototype).
-    const { error: delErr } = await sb.from("match_rule_lines").delete().eq("match_rule_id", ruleId);
-    if (delErr) return { status: "error", message: "比較ライン更新に失敗しました。" };
+    const idParse = uuidSchema.safeParse(ruleId);
+    if (!idParse.success) {
+      return err("validation", "ID 形式が不正です。");
+    }
+    const { error } = await supabase
+      .from("match_rules")
+      .update(headerPayload)
+      .eq("id", ruleId)
+      .eq("tenant_id", tenantId);
+    if (error) {
+      if (error.code === "23505") {
+        return err("conflict", "同じ業務 + ルールコードのルールが既に存在します。");
+      }
+      return err("unexpected", "ルール更新に失敗しました。");
+    }
   }
-  const lineRows = parsed.data.lines.map((l) => ({
-    match_rule_id: ruleId,
-    sort_order: l.sortOrder,
-    line_field_code: l.lineFieldCode,
-    label_field_code: l.labelFieldCode,
-    compare_type: l.compareType,
-    missing_value_action: l.missingValueAction,
-    mismatch_action: l.mismatchAction,
-  }));
-  if (lineRows.length > 0) {
-    const { error } = await sb.from("match_rule_lines").insert(lineRows);
-    if (error) return { status: "error", message: "比較ライン保存に失敗しました。" };
+
+  // ---- diff UPSERT for match_rule_lines (R-P5-04) ---------------------
+  const { data: existingLines, error: existingErr } = await supabase
+    .from("match_rule_lines")
+    .select("id, sort_order")
+    .eq("match_rule_id", ruleId)
+    .is("deleted_at", null);
+  if (existingErr) {
+    return err("unexpected", "比較ライン取得に失敗しました。");
   }
-  return { status: "ok" };
+
+  const submittedKeys = new Set(parsed.data.lines.map((l) => l.sortOrder));
+  const toSoftDelete = (existingLines ?? []).filter(
+    (e) => !submittedKeys.has((e as { sort_order: number }).sort_order),
+  );
+  if (toSoftDelete.length > 0) {
+    const ids = toSoftDelete.map((r) => (r as { id: string }).id);
+    const { error: delErr } = await supabase
+      .from("match_rule_lines")
+      .update({ deleted_at: new Date().toISOString() })
+      .in("id", ids);
+    if (delErr) {
+      return err("unexpected", "比較ライン削除に失敗しました。");
+    }
+  }
+
+  if (parsed.data.lines.length > 0) {
+    const upsertRows = parsed.data.lines.map((l) => ({
+      match_rule_id: ruleId,
+      sort_order: l.sortOrder,
+      line_field_code: l.lineFieldCode,
+      label_field_code: l.labelFieldCode,
+      compare_type: l.compareType,
+      missing_value_action: l.missingValueAction,
+      mismatch_action: l.mismatchAction,
+      deleted_at: null,
+    }));
+    // match_rule_lines lacks a UNIQUE(match_rule_id, sort_order) constraint
+    // in Phase 2 DDL, so we cannot use upsert(onConflict). Approach: SELECT
+    // existing by composite key, then UPDATE matched rows and INSERT new.
+    for (const row of upsertRows) {
+      const match = (existingLines ?? []).find(
+        (e) => (e as { sort_order: number }).sort_order === row.sort_order,
+      );
+      if (match) {
+        const { error: upErr } = await supabase
+          .from("match_rule_lines")
+          .update({
+            line_field_code: row.line_field_code,
+            label_field_code: row.label_field_code,
+            compare_type: row.compare_type,
+            missing_value_action: row.missing_value_action,
+            mismatch_action: row.mismatch_action,
+            deleted_at: null,
+          })
+          .eq("id", (match as { id: string }).id);
+        if (upErr) {
+          return err("unexpected", "比較ライン更新に失敗しました。");
+        }
+      } else {
+        const { error: insErr } = await supabase
+          .from("match_rule_lines")
+          .insert(row);
+        if (insErr) {
+          return err("unexpected", "比較ライン追加に失敗しました。");
+        }
+      }
+    }
+  }
+
+  return ok({ id: ruleId });
 }
 
-export async function deleteMatchRuleAction(id: string): Promise<SaveMatchRuleResult> {
-  if (!z.string().min(1).safeParse(id).success) {
-    return { status: "error", message: "ID が不正です。" };
+export async function deleteMatchRuleAction(id: string): Promise<AdminActionResult<void>> {
+  const parse = DELETE_INPUT.safeParse({ id });
+  if (!parse.success) {
+    return err("validation", "ID が不正です。");
   }
-  if (!supabaseConfigured()) {
-    return { status: "ok" };
+  if (id.startsWith("new-")) return ok();
+  const idParse = uuidSchema.safeParse(id);
+  if (!idParse.success) {
+    return err("validation", "ID 形式が不正です。");
   }
-  const session = await getAppSession();
-  if (session.kind !== "ok") return { status: "error", message: "認証が必要です。" };
-  if (session.session.role === "worker") {
-    return { status: "error", message: "tenant_admin 以上の権限が必要です。" };
-  }
-  const sb = await createClient();
-  const { error } = await sb.from("match_rules").update({ deleted_at: new Date().toISOString() }).eq("id", id);
-  if (error) return { status: "error", message: "削除に失敗しました。" };
-  return { status: "ok" };
+
+  const gate = await ensureTenantAdmin();
+  if (isErr(gate)) return gate;
+  const { tenantId, supabase } = gate.data;
+
+  const { error } = await supabase
+    .from("match_rules")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
+  if (error) return err("unexpected", "削除に失敗しました。");
+  return ok();
 }

@@ -6,11 +6,21 @@ import { PickingFlow } from "./PickingFlow";
 
 export const metadata: Metadata = { title: "ピッキング" };
 
-export default async function PickingPage() {
+type SearchParams = { mode?: string | string[] };
+
+export default async function PickingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<SearchParams>;
+}) {
   const result = await getAppSession();
   if (result.kind === "unauthenticated") {
     redirect("/login?next=/app/logi/picking");
   }
+
+  const sp = (await searchParams) ?? {};
+  const modeParam = Array.isArray(sp.mode) ? sp.mode[0] : sp.mode;
+  const startMode: "scan" | "form" = modeParam === "scan" ? "scan" : "form";
 
   const headerFormats = DEMO_QR_FORMATS.filter((f) => f.qrType === "header");
   const lineFormats = DEMO_QR_FORMATS.filter((f) => f.qrType === "line");
@@ -19,7 +29,11 @@ export default async function PickingPage() {
     DEMO_MATCH_RULES.find((r) => r.businessCode === "picking") ?? null;
 
   return (
-    <div className="flex flex-col gap-4" data-testid="picking-root">
+    <div
+      className="flex flex-col gap-4"
+      data-testid="picking-root"
+      data-start-mode={startMode}
+    >
       <PickingFlow
         headerFormats={headerFormats}
         lineFormats={lineFormats}

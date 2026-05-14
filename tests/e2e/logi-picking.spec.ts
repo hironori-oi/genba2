@@ -18,7 +18,11 @@ function shotPath(name: string): string {
  * and the ng_flow=block contract: 登録 button must be disabled when match
  * has not run yet, and remain disabled after a NG match.
  */
-test.describe("Phase 3b ピッキング flow", () => {
+test.describe("Phase 3b ピッキング unauth contract", () => {
+  // Phase 6b carry-over hardening: clean storage state so unauth redirect
+  // assertion runs even when global-setup primed tenant_admin cookies.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test("/app/logi/picking redirects unauthenticated visitors back to /login", async ({
     page,
   }) => {
@@ -29,7 +33,9 @@ test.describe("Phase 3b ピッキング flow", () => {
       fullPage: true,
     });
   });
+});
 
+test.describe("Phase 3b ピッキング flow", () => {
   test("authed structure — 5 step progress + ng_flow=block disables submit", async ({
     page,
   }) => {
@@ -39,16 +45,26 @@ test.describe("Phase 3b ピッキング flow", () => {
     );
 
     await page.goto("/app/logi/picking");
-    await expect(page.getByTestId("step-header")).toBeVisible();
-    // 5 step entries
+    // The picking flow has a step whose id is also "header", colliding with
+    // the StepHeader's outer container. Disambiguate via element selector.
+    await expect(page.locator('header[data-testid="step-header"]')).toBeVisible();
+    // 5 step entries (each rendered as an <li data-testid="step-{id}">).
     for (const id of ["header", "line", "label", "quantity", "submit"]) {
-      await expect(page.getByTestId(`step-${id}`)).toBeVisible();
+      await expect(page.locator(`li[data-testid="step-${id}"]`)).toBeVisible();
     }
 
     // ng_flow=block by default → submit disabled until match passes.
     const submit = page.getByTestId("pick-submit");
     await expect(submit).toBeVisible();
     await expect(submit).toBeDisabled();
+
+    // Dismiss the auto-mounted ManualInputModal (Scanner D-03 fallback when
+    // headless Playwright lacks getUserMedia / BarcodeDetector) so the
+    // ngflow radio underneath receives the click target.
+    const modal = page.getByTestId("manual-input-modal");
+    if (await modal.isVisible().catch(() => false)) {
+      await page.getByTestId("manual-input-close").click();
+    }
 
     // Toggle to warn → still disabled (no match yet), label updates.
     await page.getByTestId("ngflow-toggle").getByLabel(/warn/).check();

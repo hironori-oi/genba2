@@ -168,6 +168,7 @@ export function CsvUploadButton({
         accept="text/csv,.csv,application/vnd.ms-excel"
         onChange={handleChange}
         className="sr-only"
+        aria-label={LABEL_FOR_KIND[kind]}
         aria-describedby={`${inputId}-hint`}
       />
       <div className="flex flex-wrap items-center gap-3">

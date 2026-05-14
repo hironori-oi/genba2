@@ -51,17 +51,96 @@
   --sidebar-muted: var(--color-sidebar-muted);
 }
 
+/* Phase 6e dark-mode wire-up (ADR-P6-06 §B.5).
+   Three-layer cascade so the manual toggle wins over the OS preference:
+     (1) :root:not([data-theme]) + @media prefers-color-scheme: dark → "auto"
+     (2) [data-theme="dark"]                                          → manual dark
+     (3) [data-theme="light"]                                         → manual light (force defaults)
+   Token values are tuned so chip / muted-on-surface / sidebar-foreground all
+   exceed WCAG AA 4.5:1 against their backgrounds in both modes. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
+    color-scheme: dark;
     --bg: oklch(15% 0.01 160);
     --surface: oklch(18% 0.012 160);
     --surface-2: oklch(22% 0.012 160);
-    --ink: #e7ece8;
-    --muted: #9aa8a3;
-    --border: oklch(28% 0.01 160);
+    --ink: #f1f5f2;
+    --muted: #b8c4bf;
+    --border: oklch(34% 0.01 160);
     --sidebar: oklch(12% 0.01 160);
-    --sidebar-foreground: #e7ece8;
-    --sidebar-muted: oklch(70% 0.01 160);
+    --sidebar-foreground: #f1f5f2;
+    --sidebar-muted: oklch(78% 0.01 160);
+
+    --color-brand: oklch(74% 0.13 175);
+    --color-brand-foreground: #051713;
+
+    --color-ok: #6ee0a6;
+    --color-warn: #f5c777;
+    --color-bad: #ff8b80;
+
+    --color-func-receive: #4cc6b3;
+    --color-func-pick: #f3a079;
+    --color-func-inventory: #8db1f0;
+    --color-func-manufact: #b89aef;
+
+    --color-scan-frame: oklch(85% 0.01 160);
+    --color-scan-frame-strong: oklch(70% 0.02 160);
+    --color-step-active: oklch(74% 0.13 175);
+    --color-step-done: oklch(70% 0.13 152);
+    --color-step-pending: oklch(58% 0.005 160);
+
+    --color-good: oklch(70% 0.14 152);
+  }
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: oklch(15% 0.01 160);
+  --surface: oklch(18% 0.012 160);
+  --surface-2: oklch(22% 0.012 160);
+  --ink: #f1f5f2;
+  --muted: #b8c4bf;
+  --border: oklch(34% 0.01 160);
+  --sidebar: oklch(12% 0.01 160);
+  --sidebar-foreground: #f1f5f2;
+  --sidebar-muted: oklch(78% 0.01 160);
+
+  --color-brand: oklch(74% 0.13 175);
+  --color-brand-foreground: #051713;
+
+  --color-ok: #6ee0a6;
+  --color-warn: #f5c777;
+  --color-bad: #ff8b80;
+
+  --color-func-receive: #4cc6b3;
+  --color-func-pick: #f3a079;
+  --color-func-inventory: #8db1f0;
+  --color-func-manufact: #b89aef;
+
+  --color-scan-frame: oklch(85% 0.01 160);
+  --color-scan-frame-strong: oklch(70% 0.02 160);
+  --color-step-active: oklch(74% 0.13 175);
+  --color-step-done: oklch(70% 0.13 152);
+  --color-step-pending: oklch(58% 0.005 160);
+
+  --color-good: oklch(70% 0.14 152);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Force light theme when printing — avoids ink-heavy reports on dark paper. */
+@media print {
+  :root,
+  :root[data-theme="dark"] {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f3f5f3;
+    --ink: #18221f;
+    --muted: #5b6864;
+    --border: #dfe5e2;
   }
 }
 

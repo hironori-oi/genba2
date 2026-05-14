@@ -119,6 +119,39 @@ export default async function HistoryDetailPage({ params }: PageProps) {
           >
             記録内容
           </h2>
+          {correctionRoute(row.targetTable) ? (
+            <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-3">
+              <Link
+                href={
+                  row.targetId
+                    ? `${correctionRoute(row.targetTable)!}?prefill=${encodeURIComponent(row.targetId)}`
+                    : correctionRoute(row.targetTable)!
+                }
+                data-testid="history-detail-correct-link"
+                aria-label="訂正画面へ移動"
+                className="inline-flex h-14 min-h-14 min-w-14 items-center justify-center border border-[var(--color-brand)] bg-[var(--surface-2)] px-6 text-base font-medium text-[var(--ink)] hover:border-[var(--color-brand)] hover:bg-[var(--color-brand)] hover:text-[var(--color-brand-foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand)]"
+              >
+                訂正へ
+              </Link>
+              {(() => {
+                const pr = printRouteFor(row.targetTable, row.businessCode);
+                if (!pr || !row.targetId) return null;
+                return (
+                  <Link
+                    href={`${pr.href}?recordId=${encodeURIComponent(row.targetId)}`}
+                    data-testid="history-detail-print-link"
+                    aria-label={`${pr.label} を 1 件だけ印刷`}
+                    className="inline-flex h-14 min-h-14 min-w-14 items-center justify-center border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--ink)] hover:border-[var(--color-brand)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand)]"
+                  >
+                    この 1 件を印刷
+                  </Link>
+                );
+              })()}
+              <span className="text-xs text-[var(--muted)]">
+                自分が登録した未訂正レコードのみ操作できます。
+              </span>
+            </div>
+          ) : null}
           <dl className="grid grid-cols-1 gap-3 sm:grid-cols-[10rem_1fr]">
             <DtDd label="作成日時">
               <span className="font-mono text-xs text-[var(--ink)]">
@@ -210,6 +243,35 @@ export default async function HistoryDetailPage({ params }: PageProps) {
       ) : null}
     </div>
   );
+}
+
+function correctionRoute(targetTable: string | null): string | null {
+  switch (targetTable) {
+    case "movement_records":
+      return "/app/correct/movements";
+    case "inventory_records":
+      return "/app/correct/inventory";
+    case "manufacturing_records":
+      return "/app/correct/manufacturing";
+    default:
+      return null;
+  }
+}
+
+function printRouteFor(
+  targetTable: string | null,
+  businessCode: string | null,
+): { href: string; label: string } | null {
+  if (targetTable === "manufacturing_records") {
+    return { href: "/print/manufacturing-daily", label: "製造実績日報" };
+  }
+  if (targetTable === "movement_records" && businessCode === "picking") {
+    return { href: "/print/picking-list", label: "出荷一覧" };
+  }
+  if (targetTable === "inventory_records") {
+    return { href: "/print/inventory-result", label: "棚卸結果" };
+  }
+  return null;
 }
 
 function DtDd({

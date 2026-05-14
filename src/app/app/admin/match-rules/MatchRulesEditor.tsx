@@ -133,16 +133,20 @@ export function MatchRulesEditor({
         setError(result.message);
         return;
       }
-      // Reflect back into list.
+      const persistedId = result.data.id;
+      // Reflect back into list (replace optimistic id with the DB-assigned uuid).
       setRules((prev) => {
         const existing = prev.findIndex((r) => r.id === draft.id);
+        const saved = { ...draft, id: persistedId };
         if (existing >= 0) {
           const next = [...prev];
-          next[existing] = draft;
+          next[existing] = saved;
           return next;
         }
-        return [...prev, draft];
+        return [...prev, saved];
       });
+      setSelectedId(persistedId);
+      setDraft({ ...draft, id: persistedId });
       setNotice("保存しました。");
     });
   }

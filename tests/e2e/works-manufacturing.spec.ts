@@ -26,7 +26,11 @@ function shotPath(name: string): string {
  * Authed scenarios are skipped without an E2E_LOGI_AUTH_COOKIE so this file
  * stays green pre-tenant-provisioning, matching Phase 3b convention.
  */
-test.describe("Phase 4c 製造実績 flow", () => {
+test.describe("Phase 4c 製造実績 unauth contract", () => {
+  // Phase 6b carry-over hardening: clean storage state so unauth redirect
+  // assertion runs even when global-setup primed tenant_admin cookies.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test("/app/works/manufacturing redirects unauthenticated visitors back to /login", async ({
     page,
   }) => {
@@ -37,7 +41,9 @@ test.describe("Phase 4c 製造実績 flow", () => {
       fullPage: true,
     });
   });
+});
 
+test.describe("Phase 4c 製造実績 flow", () => {
   test("authed structure — StepHeader + 5-step ladder + defect cap visible", async ({
     page,
   }) => {

@@ -76,3 +76,56 @@ npm run dev
 
 - 仕様: `workspace/research/genba-discovery/spec/genba_overall_ui_mock.html`、`GENBA_機能整理.md`
 - 旧試作 (read only、コピー禁止): `workspace/research/genba-discovery/reference/pick-checker/`
+
+## Phase 5b — admin master CRUD RLS quick-checks
+
+Phase 5b ships QR / 照合ルール / 項目設定 / 製造系マスタの CRUD UI を `/app/admin/*` に追加した。テーブル DDL + policy は Phase 2 既存 (`supabase/migrations/20260512000000_phase2_settings_masters.sql`) を変更していない。RLS-501..505 は Phase 5e で `RUN_LIVE_RLS_TESTS=1` を付けて `tests/integration/rls/admin-crud-rls.test.ts` 経由で実行する予定。SQL の静的形は以下のとおり (`docs/ARCHITECTURE-phase5-admin-ui.md` §7.2 と整合)。
+
+```sql
+-- RLS-501: qr_format_definitions に対する worker INSERT は 42501 で reject される
+set local role authenticated;
+set local jwt.claims.role = 'worker';
+set local jwt.claims.tenant_id = '<tenant-A>';
+insert into public.qr_format_definitions
+  (tenant_id, qr_type, format_code, format_name, version)
+values
+  ('<tenant-A>'::uuid, 'label', 'WORKER-LBL', 'worker insert', 1);
+-- 期待: SQLSTATE 42501 (qr_format_modify_tenant_admin policy reject)
+
+-- RLS-502: tenant_admin の cross-tenant UPDATE は 0 rows affected
+set local jwt.claims.role = 'tenant_admin';
+set local jwt.claims.tenant_id = '<tenant-A>';
+update public.qr_format_definitions
+   set format_name = 'cross-tenant'
+ where tenant_id = '<tenant-B>'::uuid;
+-- 期待: rowcount = 0 (RLS filter で WHERE が剥がれず 0 行)
+
+-- RLS-503: match_rule_lines を 他テナント所属の rule に INSERT すると 42501
+set local jwt.claims.role = 'tenant_admin';
+set local jwt.claims.tenant_id = '<tenant-A>';
+insert into public.match_rule_lines
+  (match_rule_id, sort_order, line_field_code, label_field_code,
+   compare_type, missing_value_action, mismatch_action)
+values
+  ('<tenant-B-rule-id>'::uuid, 1, 'item_code', 'item_code',
+   'equals', 'ng', 'ng');
+-- 期待: SQLSTATE 42501 (match_rule_lines_modify_tenant_admin の exists() で reject)
+
+-- RLS-504: worker は tenant_field_settings を UPDATE できない
+set local jwt.claims.role = 'worker';
+set local jwt.claims.tenant_id = '<tenant-A>';
+update public.tenant_field_settings
+   set enabled = false
+ where tenant_id = '<tenant-A>'::uuid
+   and field_code = 'item_code';
+-- 期待: SQLSTATE 42501
+
+-- RLS-505: tenant_admin の cross-tenant SELECT (csv_import_definitions) は 0 rows
+set local jwt.claims.role = 'tenant_admin';
+set local jwt.claims.tenant_id = '<tenant-A>';
+select count(*) from public.csv_import_definitions
+ where tenant_id = '<tenant-B>'::uuid;
+-- 期待: count = 0
+```
+
+Live exec は Phase 5e の orchestrator dispatch (`RUN_LIVE_RLS_TESTS=1`) で実施し、結果を `SECURITY-AUDIT-<date>-phase5.md` に追記する。

@@ -52,6 +52,8 @@ Thumbs.db
 
 # WSL-on-Windows accidental absolute-path artifacts (lighthouse/etc.)
 C:\\Users*
+**/lighthouse.[0-9]*/
+*lighthouse.[0-9]*
 
 # kobo local dispatch artifacts
 .kobo/

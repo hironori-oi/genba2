@@ -11,8 +11,25 @@ import {
 import { supabaseConfigured } from "@/lib/env";
 import type { AnyBusinessCode } from "@/lib/logi/types";
 import { HistoryCsvButton } from "./HistoryCsvButton";
+import {
+  PRINT_REPORT_KINDS,
+  PRINT_REPORT_TITLES,
+  type PrintReportKind,
+} from "@/lib/print/types";
 
 export const metadata: Metadata = { title: "スキャン履歴" };
+
+function printHrefFor(
+  kind: PrintReportKind,
+  filters: ScanHistoryFilters,
+): string {
+  const params = new URLSearchParams();
+  if (filters.from) params.set("from", filters.from);
+  if (filters.to) params.set("to", filters.to);
+  return `/print/${kind}${params.toString() ? `?${params.toString()}` : ""}`;
+}
+
+const PRINT_LAUNCHER_KINDS: PrintReportKind[] = [...PRINT_REPORT_KINDS];
 
 const BUSINESS_OPTIONS: Array<{
   value: AnyBusinessCode | "";
@@ -199,6 +216,38 @@ export default async function HistoryPage({
         </button>
         <HistoryCsvButton rows={rows} />
       </form>
+
+      <section
+        aria-labelledby="history-print-launchers"
+        className="border border-[var(--border)] bg-[var(--surface)] p-3"
+      >
+        <h2
+          id="history-print-launchers"
+          className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
+        >
+          帳票印刷
+        </h2>
+        <p className="mb-2 text-xs text-[var(--muted)]">
+          上の期間絞込のまま、対応する帳票の印刷プレビューを開きます。
+        </p>
+        <ul
+          className="flex flex-wrap gap-2"
+          data-testid="history-print-launchers"
+        >
+          {PRINT_LAUNCHER_KINDS.map((kind) => (
+            <li key={kind}>
+              <Link
+                href={printHrefFor(kind, filters)}
+                data-testid={`history-print-${kind}`}
+                aria-label={`${PRINT_REPORT_TITLES[kind]} を印刷`}
+                className="inline-flex h-14 items-center justify-center border border-[var(--border)] bg-[var(--surface)] px-4 text-sm text-[var(--ink)] hover:border-[var(--color-brand)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand)]"
+              >
+                印刷: {PRINT_REPORT_TITLES[kind]}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section
         aria-labelledby="history-results"

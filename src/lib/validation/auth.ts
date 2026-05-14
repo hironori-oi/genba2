@@ -3,7 +3,8 @@ import { z } from "zod";
 /**
  * AC-AUTH-01 (PRODUCT_SPEC §6, 2026-05-11 owner decision):
  * - password minimum length: 10 characters
- * - role/tenant changes server-side revoke the user's refresh tokens via service_role
+ * - role/tenant changes invalidate the user's refresh tokens via an
+ *   elevated admin RPC (server-only path).
  *
  * UI and server actions MUST both use these schemas — keep the length here
  * single-sourced.

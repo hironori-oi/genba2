@@ -1,0 +1,149 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "back": "Back",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "online": "Online",
+    "offline": "Offline",
+    "tenantNotSet": "tenant: not set",
+    "userMissing": "User not loaded",
+    "skipToContent": "Skip to main content",
+    "previewMode": "Preview mode",
+    "previewModeDescription": "Supabase credentials are not configured, so this is a preview with placeholder data. Once values are written to `.env.enc`, live data will appear."
+  },
+  "appShell": {
+    "productTagline": "Shop-floor work record SaaS",
+    "navAriaGlobal": "Global navigation",
+    "navAriaBusiness": "Operations",
+    "navSectionBusiness": "Operations",
+    "logout": "Sign out",
+    "phaseChip": "v0.1 / Phase 1",
+    "pendingChipP6": "P6",
+    "pendingChipFuture": "P3+",
+    "phasePending": "Coming after Phase 2",
+    "tenantPrefix": "tenant",
+    "usageBannerWarnTitle": "Monthly scan cap is at 80%",
+    "usageBannerWarnBody": "{used} scans this month / cap {cap} ({percent}%). Consider reviewing the tenant plan.",
+    "usageBannerExceededTitle": "Monthly scan cap exceeded",
+    "usageBannerExceededBody": "{used} scans this month / cap {cap}. New scans may be rejected.",
+    "usageBannerOpenAction": "Open usage page"
+  },
+  "nav": {
+    "receiving": "Receiving",
+    "picking": "Picking",
+    "inventory": "Inventory count",
+    "manufacturing": "Manufacturing",
+    "fields": "Field settings",
+    "qr": "QR settings",
+    "qrTest": "QR scan test",
+    "matchRules": "Match rules",
+    "csvFormats": "CSV formats",
+    "workSettings": "Work settings",
+    "masters": "Manufacturing masters",
+    "correctionsPending": "Pending corrections",
+    "reports": "Reports",
+    "auditLogs": "Audit logs",
+    "tenants": "Tenant management",
+    "notifications": "Notification settings",
+    "users": "User management",
+    "usage": "Usage"
+  },
+  "roles": {
+    "worker": "Worker",
+    "tenant_admin": "Tenant admin",
+    "system_admin": "System admin"
+  },
+  "dashboard": {
+    "eyebrow": "Dashboard",
+    "greeting": "Hello, {name}.",
+    "greetingFallback": "Welcome",
+    "intro": "Pick an operation to start your work. Phase 1 ships only authentication and platform foundations; operational screens open progressively from Phase 3.",
+    "businessListSr": "Available operations",
+    "comingSoon": "Coming soon",
+    "sessionHeading": "Session info",
+    "roleLabel": "Role",
+    "tenantLabel": "Tenant ID",
+    "tenantUnassigned": "Unassigned (owner assigns the initial admin)",
+    "businesses": {
+      "receivingNote": "Scan label QRs to record receiving",
+      "pickingNote": "Header → line → label two-point match",
+      "inventoryNote": "CSV import → location → label → actual qty",
+      "manufacturingNote": "Implemented in Phase 4"
+    },
+    "noticePasswordReset": "Password reset",
+    "noticePasswordResetBody": "Your password reset has been confirmed. Update your password from the settings tab (UI coming in Phase 5)."
+  },
+  "admin": {
+    "eyebrow": "Operations settings",
+    "heading": "Fields, QR & match rules",
+    "intro": "Toggle standard fields and their roles, edit QR versions, and edit match rules. Phase 2 provides the editing UI and scan tester; Phase 3+ operational screens consume these settings directly.",
+    "tabsAria": "Admin tabs",
+    "phase6Pending": "P6",
+    "phase6InProgress": "Phase 6 in progress",
+    "indexAria": "Admin menu list",
+    "noticeSystemAdminOnlyTitle": "Access denied",
+    "noticeSystemAdminOnlyBody": "The requested page is restricted to system administrators. tenant_admin accounts cannot access it."
+  },
+  "logi": {
+    "eyebrow": "LOGI",
+    "heading": "Logistics operations",
+    "intro": "Receiving, picking and inventory count run on a single device. Each operation centers on QR scanning with a manual fallback. Manufacturing lives under WORKS (/app/works/manufacturing) with the same feel.",
+    "businessesSr": "Available logistics operations",
+    "primaryStart": "Start from header",
+    "scanStart": "Start with scan",
+    "scanStartAria": "Start {label} with scan",
+    "relatedHeading": "Related menu",
+    "linkHistory": "View history",
+    "businesses": {
+      "receivingDescription": "Free-form scanning of item label QR codes to record receiving (UC-2). Includes location correction and manual fallback.",
+      "pickingDescription": "Two-point match of header → line → item label (UC-1). NG handling follows ng_flow (block / warn).",
+      "inventoryDescription": "Inventory plan CSV import → location QR → label QR → actual qty entry (UC-3). Variance CSV export available.",
+      "manufacturingDescription": "Manufacturing record entry (UC-4). Process → actual qty → defects → optional manufacturing receipt in a single transaction."
+    }
+  },
+  "works": {
+    "eyebrow": "WORKS / Manufacturing record",
+    "heading": "Manufacturing record entry"
+  },
+  "account": {
+    "eyebrow": "Personal settings / Display & notifications",
+    "heading": "Display and notifications",
+    "intro": "Switch language, theme and notification level. Theme defaults to following the OS.",
+    "breadcrumbAria": "Personal settings breadcrumb",
+    "backToIndex": "← Back to personal settings",
+    "previewBanner": "Supabase credentials are not configured, so changes will not be persisted."
+  },
+  "preferences": {
+    "languageLegend": "Display language",
+    "themeLegend": "Theme",
+    "notificationLegend": "Notifications",
+    "saveError": "Could not save",
+    "saveSuccess": "Saved",
+    "saveSuccessBody": "Personal settings updated.",
+    "languageOptions": {
+      "ja": "日本語",
+      "en": "English"
+    },
+    "themeOptions": {
+      "auto": "Follow OS",
+      "autoHint": "Match the device setting (default)",
+      "light": "Light",
+      "lightHint": "Always light theme",
+      "dark": "Dark",
+      "darkHint": "Always dark theme"
+    },
+    "notificationOptions": {
+      "all": "All",
+      "allHint": "Receive updates, contact and announcements",
+      "important": "Important only",
+      "importantHint": "Only operationally significant notices (default)",
+      "none": "None",
+      "noneHint": "Do not receive notifications"
+    }
+  }
+}

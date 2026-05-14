@@ -1,0 +1,143 @@
+/*
+ * Phase 6c — print preview styles.
+ *
+ * A4 portrait by default; switches to 80mm thermal roll when the root element
+ * carries data-paper="80mm". Both branches collapse all on-screen chrome
+ * (paper toggle, sidebar nav, header buttons) inside @media print and force
+ * a light colour scheme so a dark OS never bleeds black ink onto the page.
+ */
+
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
+[data-paper="80mm"] {
+  --print-width: 80mm;
+}
+
+[data-paper="a4"] {
+  --print-width: 210mm;
+}
+
+.print-page {
+  background: #ffffff;
+  color: #14191c;
+  color-scheme: light;
+  font-family:
+    "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", system-ui,
+    -apple-system, "Segoe UI", sans-serif;
+  font-size: 11pt;
+  line-height: 1.45;
+  padding: 8mm;
+}
+
+[data-paper="80mm"] .print-page {
+  font-size: 9pt;
+  padding: 2mm;
+}
+
+.print-header {
+  border-bottom: 1px solid #14191c;
+  padding-bottom: 4mm;
+  margin-bottom: 6mm;
+}
+
+.print-title {
+  font-size: 16pt;
+  font-weight: 700;
+  margin: 0 0 2mm 0;
+}
+
+[data-paper="80mm"] .print-title {
+  font-size: 12pt;
+}
+
+.print-meta {
+  font-size: 9pt;
+  color: #4a5560;
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+}
+
+[data-paper="80mm"] .print-table {
+  font-size: 8pt;
+}
+
+.print-table th,
+.print-table td {
+  border: 1px solid #14191c;
+  padding: 1.5mm 2mm;
+  vertical-align: top;
+  text-align: left;
+  word-break: break-word;
+}
+
+.print-table th {
+  background: #f0f2f5;
+  font-weight: 600;
+}
+
+/* Code reconciliation highlight — mismatched rows. */
+.print-row-mismatch td {
+  background: #fef0f0;
+  color: #8a1f1f;
+  font-weight: 600;
+}
+
+.print-row-mismatch td::after {
+  content: "";
+}
+
+.print-cell-mismatch {
+  background: #fde4e4;
+  color: #8a1f1f;
+  font-weight: 700;
+}
+
+.print-empty {
+  margin: 12mm 0;
+  text-align: center;
+  color: #4a5560;
+  font-size: 11pt;
+}
+
+.print-footer {
+  margin-top: 8mm;
+  padding-top: 3mm;
+  border-top: 1px dashed #4a5560;
+  font-size: 9pt;
+  color: #4a5560;
+  display: flex;
+  justify-content: space-between;
+}
+
+.print-screen-only {
+  display: block;
+}
+
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff !important;
+    color: #14191c !important;
+    color-scheme: light !important;
+  }
+  .print-screen-only {
+    display: none !important;
+  }
+  .print-page {
+    padding: 0;
+  }
+  /* Per-paper @page sizing. The dynamic @page rule is emitted inline via a
+     <style> in page.tsx so the active selection wins at print time. */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

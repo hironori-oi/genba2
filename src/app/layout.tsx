@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages, getTranslations } from "next-intl/server";
 import "./globals.css";
+import { resolvePreferences } from "@/i18n/preferences";
 
 export const metadata: Metadata = {
   title: {
@@ -20,21 +23,31 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { locale, theme } = await resolvePreferences();
+  const messages = await getMessages();
+  const t = await getTranslations("common");
+  const htmlProps =
+    theme === "auto"
+      ? { lang: locale }
+      : { lang: locale, "data-theme": theme };
+
   return (
-    <html lang="ja">
+    <html {...htmlProps}>
       <body>
         <a
           href="#main"
           className="absolute left-2 top-2 z-50 -translate-y-20 bg-[var(--color-brand)] px-3 py-2 text-sm text-white focus:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand)]"
         >
-          メインコンテンツへスキップ
+          {t("skipToContent")}
         </a>
-        {children}
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

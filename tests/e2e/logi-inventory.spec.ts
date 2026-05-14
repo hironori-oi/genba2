@@ -19,7 +19,11 @@ function shotPath(name: string): string {
  * an E2E_LOGI_AUTH_COOKIE so this file remains green in CI before the
  * test tenant is provisioned.
  */
-test.describe("Phase 3b 棚卸 flow", () => {
+test.describe("Phase 3b 棚卸 unauth contract", () => {
+  // Phase 6b carry-over hardening: clean storage state so unauth redirect
+  // assertion runs even when global-setup primed tenant_admin cookies.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test("/app/logi/inventory redirects unauthenticated visitors back to /login", async ({
     page,
   }) => {
@@ -30,7 +34,9 @@ test.describe("Phase 3b 棚卸 flow", () => {
       fullPage: true,
     });
   });
+});
 
+test.describe("Phase 3b 棚卸 flow", () => {
   test("authed structure — CSV upload button + location scanner area render", async ({
     page,
   }) => {

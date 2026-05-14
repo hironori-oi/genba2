@@ -16,6 +16,13 @@ function detectDevPort(): number | null {
 const PORT = Number(process.env.PORT ?? detectDevPort() ?? 3100);
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 
+const AUTH_DIR = join(process.cwd(), ".kobo", "playwright-auth");
+const ADMIN_STATE = join(AUTH_DIR, "tenant_admin.json");
+const WORKER_STATE = join(AUTH_DIR, "worker.json");
+
+const adminStorage = existsSync(ADMIN_STATE) ? ADMIN_STATE : undefined;
+const workerStorage = existsSync(WORKER_STATE) ? WORKER_STATE : undefined;
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
@@ -27,6 +34,10 @@ export default defineConfig({
     ["html", { open: "never", outputFolder: "playwright-report" }],
     ["json", { outputFile: "playwright-report/results.json" }],
   ],
+  globalSetup:
+    process.env.SKIP_E2E_GLOBAL_SETUP === "1"
+      ? undefined
+      : "./tests/e2e/global-setup.ts",
   use: {
     baseURL: BASE_URL,
     trace: "retain-on-failure",
@@ -36,7 +47,19 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: adminStorage,
+      },
+    },
+    {
+      name: "chromium-worker",
+      testMatch: /correction\.spec\.ts/,
+      grep: /worker is NOT redirected/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: workerStorage,
+      },
     },
   ],
   // The dev server is started externally via scripts/run-dev.sh (tmux session
