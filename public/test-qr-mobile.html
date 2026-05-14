@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>genba 携帯テスト — QR sample + 進め方</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  :root { --primary: #2563eb; --bg: #f5f5f5; --card: #ffffff; --ink: #1a1a1a; --muted: #6b7280; --border: #d1d5db; --warn: #fef3c7; --warn-border: #f59e0b; --error: #fef2f2; --error-border: #ef4444; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; max-width: 900px; margin: 0 auto; padding: 16px; line-height: 1.7; color: var(--ink); background: var(--bg); }
+  h1 { font-size: 22px; border-bottom: 3px solid var(--primary); padding-bottom: 8px; }
+  h2 { font-size: 18px; margin-top: 36px; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 4px; }
+  h3 { font-size: 15px; margin-top: 16px; color: #374151; }
+  .step { background: var(--card); padding: 12px 16px; margin: 10px 0; border-left: 4px solid var(--primary); border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  .qr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .qr-card { background: var(--card); padding: 16px; border: 1px solid var(--border); border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .qr-card .label { font-weight: bold; font-size: 14px; margin-bottom: 8px; color: var(--primary); }
+  .qr-card .raw { font-family: "SFMono-Regular", "Consolas", monospace; font-size: 11px; background: #f3f4f6; padding: 6px 10px; border-radius: 4px; margin: 8px 0; word-break: break-all; text-align: left; }
+  .qr-card .qr-img { display: inline-block; margin: 8px 0; background: white; padding: 8px; }
+  .qr-card .qr-img img { display: block; }
+  .qr-card .note { font-size: 12px; color: var(--muted); text-align: left; margin-top: 6px; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; background: var(--card); }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; font-size: 13px; }
+  th { background: #e0e7ff; color: var(--primary); }
+  code { background: #f3f4f6; padding: 2px 5px; border-radius: 3px; font-size: 90%; font-family: monospace; }
+  .warn { background: var(--warn); border-left: 4px solid var(--warn-border); padding: 12px 16px; margin: 12px 0; border-radius: 4px; }
+  .error { background: var(--error); border-left: 4px solid var(--error-border); padding: 12px 16px; margin: 12px 0; border-radius: 4px; }
+  ul { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .url-box { background: #fefce8; padding: 10px 12px; border-radius: 4px; font-family: monospace; font-size: 13px; word-break: break-all; border: 1px dashed #ca8a04; }
+  a { color: var(--primary); }
+  .role-cell { font-weight: bold; }
+  .check { color: #16a34a; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>📱 genba 携帯テスト — QR sample + 進め方</h1>
+
+<p>カメラ scan の挙動を試すための test QR codes と、テスト手順をまとめたページです。<br>
+<strong>使い方</strong>: PC のブラウザでこのページを開き、PC 画面に表示された QR を携帯のカメラで読み取ります。</p>
+
+<div class="url-box">
+🌐 production URL: <a href="https://genba2-ai.vercel.app/login">https://genba2-ai.vercel.app/login</a>
+</div>
+
+<h2>🔑 ログイン情報（synthetic test users）</h2>
+
+<table>
+  <tr><th>role</th><th>email</th><th>password</th><th>到達範囲</th></tr>
+  <tr><td class="role-cell">worker</td><td><code>e2e5e-worker-hf4vm1st@example.test</code></td><td><code>E2e5eTest!dqb8wppm!Pw</code></td><td>scan / 訂正 / 個人設定</td></tr>
+  <tr><td class="role-cell">tenant_admin</td><td><code>e2e5e-tenant_admin-5fglhi5g@example.test</code></td><td><code>E2e5eTest!tcy10c7z!Pw</code></td><td>全 admin 12 routes + scan + 訂正</td></tr>
+</table>
+
+<div class="warn">
+⚠️ Phase 5e-2 / 6f dispatch 由来の synthetic user。<code>afterAll</code> cleanup で削除されている場合は owner の実 admin アカウントでログインしてください。
+</div>
+
+<h2>📋 テストの進め方</h2>
+
+<div class="step">
+<h3>Step 1. URL を開いてログイン</h3>
+携帯ブラウザで <code>https://genba2-ai.vercel.app/login</code> を開き、worker でログイン。
+</div>
+
+<div class="step">
+<h3>Step 2. scan-first フローへ</h3>
+以下のいずれかの URL を直接開くと、即 scanner が起動します（HTTPS なのでカメラ permission が降ります）:
+<ul>
+<li><code>/app/logi/receiving?mode=scan</code> — 受入</li>
+<li><code>/app/logi/picking?mode=scan</code> — ピッキング</li>
+<li><code>/app/logi/inventory?mode=scan</code> — 棚卸</li>
+<li><code>/app/works/manufacturing?mode=scan</code> — 製造</li>
+</ul>
+または <code>/app/logi/</code> トップから「スキャンで開始」 secondary CTA を tap。
+</div>
+
+<div class="step">
+<h3>Step 3. カメラ permission 許可</h3>
+ダイアログで「許可」。HTTPS なので iOS Safari / Android Chrome ともに OK。
+</div>
+
+<div class="step">
+<h3>Step 4. 下記の QR を試し読み</h3>
+PC 画面の QR にカメラを向け、画面の中央枠内に収めて 1-2 秒静止。
+<br>各 QR で ResultOverlay の表示（成功 / 失敗 / fallback to ManualInput）を確認。
+</div>
+
+<div class="step">
+<h3>Step 5. 訂正 flow も試す</h3>
+worker でも到達可能な <code>/app/correct/movements</code> 等で、自分が登録した record を訂正 → 2 段確認ダイアログの挙動確認（特に <code>/app/correct/manufacturing</code> の <code>rollback_inflow=true</code> 時）。
+</div>
+
+<div class="step">
+<h3>Step 6. 個人設定で i18n / dark mode</h3>
+<code>/app/account/preferences</code> で language=en、theme=dark に切替 → 全画面適用確認。
+</div>
+
+<div class="step">
+<h3>Step 7. (tenant_admin) admin 画面ウォークスルー</h3>
+tenant_admin で再ログインし、<code>/app/admin</code> の 12 cards を順に確認。特に新規:
+<ul>
+<li><code>/app/admin/qr-formats</code> — version clone + 2 段確認ダイアログ</li>
+<li><code>/app/admin/csv-formats</code> — 50-row column mapping editor</li>
+<li><code>/app/admin/work-settings</code> — 4 業務 tab</li>
+<li><code>/app/admin/reports</code> — recharts dashboard (daily/weekly/monthly)</li>
+<li><code>/app/admin/audit-logs</code> — フィルタ + CSV export</li>
+<li><code>/app/admin/usage</code> — monthly_scan_usage</li>
+</ul>
+</div>
+
+<div class="step">
+<h3>Step 8. 印刷 preview</h3>
+<code>/app/logi/history</code> → 「印刷」launcher で 4 帳票を試す。A4 / 80mm thermal toggle 動作確認。
+</div>
+
+<h2>📸 テスト QR codes（PC 画面に表示、携帯で scan）</h2>
+
+<div class="qr-grid">
+
+<!-- QR 1 -->
+<div class="qr-card">
+<div class="label">QR-1: 標準パイプ区切り（品番|ロット|数量|日付）</div>
+<div id="qr1" class="qr-img"></div>
+<div class="raw">ITEM-001|LOT-20260515|100|2026-05-15</div>
+<div class="note">Phase 3 で確立した標準 QR format。受入 / 製造で使う想定。</div>
+</div>
+
+<!-- QR 2 -->
+<div class="qr-card">
+<div class="label">QR-2: JSON 構造化</div>
+<div id="qr2" class="qr-img"></div>
+<div class="raw">{"item":"ITEM-002","lot":"LOT-20260515-B","qty":50,"date":"2026-05-15"}</div>
+<div class="note">JSON 形式（カスタム format 想定）。</div>
+</div>
+
+<!-- QR 3 -->
+<div class="qr-card">
+<div class="label">QR-3: location code（棚卸用）</div>
+<div id="qr3" class="qr-img"></div>
+<div class="raw">LOC-A-01-03</div>
+<div class="note">location 形式。Phase 4 B-3 で実装した location 認識 pattern。棚卸 location-first flow 用。</div>
+</div>
+
+<!-- QR 4 -->
+<div class="qr-card">
+<div class="label">QR-4: 不適合報告ロング</div>
+<div id="qr4" class="qr-img"></div>
+<div class="raw">DEFECT|2026-05-15|LINE-3|SHIFT-2|ITEM-003|count:5|severity:critical</div>
+<div class="note">7 フィールドの不適合報告 QR。field mapping 確認用。</div>
+</div>
+
+<!-- QR 5 -->
+<div class="qr-card">
+<div class="label">QR-5: 短い ID（移動 plan 参照）</div>
+<div id="qr5" class="qr-img"></div>
+<div class="raw">PLAN-RCV-2026-0042</div>
+<div class="note">短文字列。movement_plans 参照用 ID。</div>
+</div>
+
+<!-- QR 6 -->
+<div class="qr-card">
+<div class="label">QR-6: 日本語 + 絵文字 + ISO datetime</div>
+<div id="qr6" class="qr-img"></div>
+<div class="raw">MFG|2026-05-15T09:30:00+09:00|ITEM_LONG_NAME-001|qty:99.5|note:緊急対応 ✓ ok</div>
+<div class="note">raw_value 保存（Phase 3a 確立）の動作確認。</div>
+</div>
+
+<!-- QR 7 -->
+<div class="qr-card">
+<div class="label">QR-7: URL 形式（deep-link テスト）</div>
+<div id="qr7" class="qr-img"></div>
+<div class="raw">https://genba2-ai.vercel.app/app/logi/history/sample-id-001</div>
+<div class="note">URL 形式。scanner は raw_value として読む想定。</div>
+</div>
+
+<!-- QR 8 -->
+<div class="qr-card">
+<div class="label">QR-8: わざと invalid format（fail テスト）</div>
+<div id="qr8" class="qr-img"></div>
+<div class="raw">!!!INVALID_GARBAGE_TEST!!!</div>
+<div class="note">qr_format_definitions に match しない値。ResultOverlay の「失敗時 UI」+ ManualInput fallback 動作確認。</div>
+</div>
+
+</div>
+
+<h2>🔍 確認ポイント</h2>
+
+<table>
+<tr><th>機能</th><th>確認内容</th></tr>
+<tr><td>scanner 起動</td><td>mode=scan で即 scanner mount、カメラ permission ダイアログ</td></tr>
+<tr><td>QR 認識</td><td>ResultOverlay (成功 / 失敗) の表示、aria-live 通知</td></tr>
+<tr><td>3-layer pattern (B-4)</td><td>scanner / manual / result 3 層の重なりと animation</td></tr>
+<tr><td>56×56 タッチ target</td><td>全 button が指で押しやすい、glove operation 想定</td></tr>
+<tr><td>ManualInput fallback</td><td>「手入力」 button、移行 modal の挙動</td></tr>
+<tr><td>i18n 切替</td><td>preferences で en に → AppShell nav 英語化</td></tr>
+<tr><td>dark mode</td><td>preferences で dark → 全画面 contrast OK (WCAG AA)</td></tr>
+<tr><td>訂正 flow</td><td>reason 必須、2 段確認 (rollback_inflow 時)</td></tr>
+<tr><td>印刷 preview</td><td>/app/print/[report] で A4 / 80mm toggle</td></tr>
+<tr><td>code 照合 highlight</td><td>製造実績日報 / 出荷一覧で planned vs actual 差分 red 表示</td></tr>
+<tr><td>admin nav (tenant_admin)</td><td>12 cards 全部、各 placeholder route render</td></tr>
+</table>
+
+<h2>⚠️ 困った時</h2>
+
+<ul>
+<li><strong>カメラ permission が出ない</strong>: ブラウザ設定で genba2-ai.vercel.app の権限をリセット、ページ reload</li>
+<li><strong>QR が認識されない</strong>: 距離 15-30cm、明るさ十分、QR を画面中央枠内</li>
+<li><strong>ログイン失敗</strong>: synthetic user 削除済の可能性 → owner の実アカウントで login</li>
+<li><strong>scan 後何も起きない</strong>: 該当 tenant の <code>qr_format_definitions</code> が空 → <code>/app/admin/qr-formats</code> で format 登録（tenant_admin で）</li>
+<li><strong>build error / 503</strong>: Vercel デプロイ中の可能性、3-5 分待って再 access</li>
+<li><strong>カメラ起動して数秒で止まる</strong>: Phase 3a Scanner の自動 fallback 動作（BarcodeDetector 未対応ブラウザで ManualInput modal 表示）</li>
+</ul>
+
+<div class="error">
+🚨 production data に注意: synthetic test tenant (<code>11d4774b-cba2-4d7a-9c98-0eeab4334161</code>) 内では作成・削除自由、ただし owner の実テナントで操作すると本番データに影響します。実テナント login 時は read-only walkthrough 推奨。
+</div>
+
+<script>
+function makeQR(elemId, text) {
+  try {
+    var qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    document.getElementById(elemId).innerHTML = qr.createImgTag(6);
+  } catch (e) {
+    // long text or unicode might fail at error correction M, retry with L
+    try {
+      var qr2 = qrcode(0, 'L');
+      qr2.addData(text);
+      qr2.make();
+      document.getElementById(elemId).innerHTML = qr2.createImgTag(6);
+    } catch (e2) {
+      document.getElementById(elemId).innerText = 'QR generation failed: ' + e2.message;
+    }
+  }
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  makeQR('qr1', 'ITEM-001|LOT-20260515|100|2026-05-15');
+  makeQR('qr2', '{"item":"ITEM-002","lot":"LOT-20260515-B","qty":50,"date":"2026-05-15"}');
+  makeQR('qr3', 'LOC-A-01-03');
+  makeQR('qr4', 'DEFECT|2026-05-15|LINE-3|SHIFT-2|ITEM-003|count:5|severity:critical');
+  makeQR('qr5', 'PLAN-RCV-2026-0042');
+  makeQR('qr6', 'MFG|2026-05-15T09:30:00+09:00|ITEM_LONG_NAME-001|qty:99.5|note:緊急対応 ✓ ok');
+  makeQR('qr7', 'https://genba2-ai.vercel.app/app/logi/history/sample-id-001');
+  makeQR('qr8', '!!!INVALID_GARBAGE_TEST!!!');
+});
+</script>
+
+</body>
+</html>
